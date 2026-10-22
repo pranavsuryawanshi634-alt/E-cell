@@ -1,8 +1,8 @@
 # =====================================================================
-# Render Deployment Blueprint for E-Cell SITRC Platform
+# Render Deployment Blueprint for E-Cell SITRC Platform (100% Free Tier)
 # =====================================================================
-# This file automates deployment of the backend with a persistent disk
-# ensuring your SQLite database (dev.db) is never erased during redeploys.
+# This file automates deployment of the backend on Render Free Tier connected
+# to your free Neon Serverless PostgreSQL database (zero cost, zero disk fees).
 # =====================================================================
 
 services:
@@ -11,24 +11,22 @@ services:
     name: ecell-sitrc-backend
     env: node
     rootDir: backend
-    buildCommand: npm install && npm run build && npx prisma generate
+    buildCommand: npm install --include=dev && npm run build && npx prisma generate
     startCommand: npm run start
     healthCheckPath: /api/health
-    plan: starter # Persistent disks require Starter plan or above on Render
+    plan: free # 100% Free tier (paired with free Neon PostgreSQL)
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: file:/data/dev.db
+        sync: false # Set in Render Dashboard: your Neon pooled connection string
+      - key: DIRECT_URL
+        sync: false # Set in Render Dashboard: your Neon direct connection string
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        sync: false # Enter your live Vercel/Netlify frontend URL (e.g. https://ecell-sitrc.vercel.app)
+        sync: false # Set in Render Dashboard: your live Vercel URL (e.g. https://ecell-sitrc.vercel.app)
       - key: UPLOAD_DIR
-        value: /data/uploads
-    disk:
-      name: ecell-data
-      mountPath: /data
-      sizeGB: 1
+        value: uploads
