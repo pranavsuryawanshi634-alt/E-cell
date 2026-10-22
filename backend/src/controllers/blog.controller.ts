@@ -46,14 +46,14 @@ export async function listBlogs(req: Request, res: Response) {
     }
 
     if (tag) {
-      where.tags = { contains: tag };
+      where.tags = { contains: tag, mode: 'insensitive' };
     }
 
     if (search) {
       where.OR = [
-        { title: { contains: search } },
-        { excerpt: { contains: search } },
-        { content: { contains: search } },
+        { title: { contains: search, mode: 'insensitive' } },
+        { excerpt: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
       ];
     }
 

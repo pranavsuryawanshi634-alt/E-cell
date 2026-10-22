@@ -134,9 +134,9 @@ export async function getEventRegistrations(req: AuthRequest, res: Response) {
 
     if (search) {
       where.OR = [
-        { ticketCode: { contains: search } },
-        { user: { profile: { fullName: { contains: search } } } },
-        { user: { email: { contains: search } } },
+        { ticketCode: { contains: search, mode: 'insensitive' } },
+        { user: { profile: { fullName: { contains: search, mode: 'insensitive' } } } },
+        { user: { email: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -176,10 +176,10 @@ export async function getAllRegistrations(req: AuthRequest, res: Response) {
 
     if (search) {
       where.OR = [
-        { ticketCode: { contains: search } },
-        { user: { profile: { fullName: { contains: search } } } },
-        { user: { email: { contains: search } } },
-        { event: { title: { contains: search } } },
+        { ticketCode: { contains: search, mode: 'insensitive' } },
+        { user: { profile: { fullName: { contains: search, mode: 'insensitive' } } } },
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { event: { title: { contains: search, mode: 'insensitive' } } },
       ];
     }
 

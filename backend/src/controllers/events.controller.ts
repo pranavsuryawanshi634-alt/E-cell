@@ -84,10 +84,10 @@ export async function listEvents(req: AuthRequest, res: Response) {
 
     if (search) {
       where.OR = [
-        { title: { contains: search } },
-        { description: { contains: search } },
-        { speakerName: { contains: search } },
-        { venue: { contains: search } },
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { speakerName: { contains: search, mode: 'insensitive' } },
+        { venue: { contains: search, mode: 'insensitive' } },
       ];
     }
 

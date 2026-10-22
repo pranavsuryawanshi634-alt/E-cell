@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String                 @id @default(uuid())
+  email            String                 @unique
+  password         String
+  role             String                 @default("STUDENT") // STUDENT, E_CELL_MEMBER, COORDINATOR, ADMIN
+  isVerified       Boolean                @default(true)
+  fullName         String?
+  status           String                 @default("ACTIVE") // ACTIVE, SUSPENDED
+  lastLoginAt      DateTime?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  profile               Profile?
+  registrations         EventRegistration[]
+  membershipApplication MembershipApplication?
+  startupIdeas          StartupIdea[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  blogs                 BlogPost[]
+  loginActivities       UserLoginActivity[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+}
+
+model Profile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName     String
+  phone        String?
+  college      String?  @default("Sandip Institute of Engineering & Management")
+  department   String?  // Computer Engineering, Information Technology, AI & Data Science, Mechanical, Civil, Electrical, MBA
+  year         String?  // FE, SE, TE, BE, Postgrad
+  division     String?  // A, B, C, D
+  avatarUrl    String?
+  bio          String?
+  linkedinUrl  String?
+  githubUrl    String?
+  skills       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Event {
+  id                   String              @id @default(uuid())
+  title                String
+  slug                 String              @unique
+  description          String
+  eventType            String              // WORKSHOP, SEMINAR, HACKATHON, COMPETITION, STARTUP_PITCH, NETWORKING, GUEST_LECTURE, BOOTCAMP
+  date                 DateTime
+  startTime            String
+  endTime              String
+  venue                String
+  organizer            String              @default("SIEM E-CELL")
+  registrationDeadline DateTime
+  maxParticipants      Int                 @default(100)
+  currentParticipants  Int                 @default(0)
+  bannerUrl            String?
+  speakerName          String?
+  speakerBio           String?
+  rules                String?
+  eligibility          String?
+  status               String              @default("REGISTRATION_OPEN") // DRAFT, PUBLISHED, REGISTRATION_OPEN, REGISTRATION_CLOSED, COMPLETED, CANCELLED
+  isFeatured           Boolean             @default(false)
+  createdById          String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  registrations        EventRegistration[]
+  certificates         Certificate[]
+
+  @@index([eventType])
+  @@index([status])
+}
+
+model EventRegistration {
+  id         String   @id @default(uuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     String   @default("CONFIRMED") // CONFIRMED, WAITLISTED, ATTENDED, CANCELLED
+  ticketCode String   @unique
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model MembershipApplication {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName           String
+  email              String
+  phone              String
+  department         String
+  year               String
+  skills             String
+  areasOfInterest    String
+  whyJoin            String
+  previousExperience String?
+  resumeUrl          String?
+  status             String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  adminFeedback      String?
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model StartupIdea {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  category         String?  @default("AI & DeepTech")
+  problem          String
+  proposedSolution String
+  targetUsers      String
+  market           String
+  businessModel    String
+  currentStage     String   // Ideation, Proof of Concept, Prototype / MVP, Early Traction, Scaling
+  teamMembers      String
+  expectedImpact   String
+  documentUrl      String?
+  status           String   @default("SUBMITTED") // SUBMITTED, UNDER_REVIEW, SHORTLISTED, ACCEPTED, REJECTED
+  adminFeedback    String?
+  mentorAssigned   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model TeamMember {
+  id          String   @id @default(uuid())
+  name        String
+  role        String
+  category    String   // Leadership, Technical Team, Marketing Team, Event Team, Design Team, Finance Team, Operations Team
+  department  String?
+  year        String?
+  photoUrl    String?
+  bio         String?
+  linkedinUrl String?
+  githubUrl   String?
+  email       String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
+model BlogPost {
+  id            String    @id @default(uuid())
+  title         String
+  slug          String    @unique
+  excerpt       String
+  content       String
+  coverImageUrl String?
+  category      String    // Entrepreneurship, Tech Trends, Startup Stories, Campus Innovation, Founder Interviews
+  tags          String
+  authorId      String?
+  authorName    String    @default("SIEM E-Cell Editorial")
+  author        User?     @relation(fields: [authorId], references: [id])
+  isPublished   Boolean   @default(true)
+  publishedAt   DateTime  @default(now())
+  views         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([category])
+  @@index([isPublished])
+}
+
+model Announcement {
+  id            String    @id @default(uuid())
+  title         String
+  content       String
+  priority      String    @default("MEDIUM") // LOW, MEDIUM, HIGH
+  category      String?   @default("General")
+  attachmentUrl String?
+  linkUrl       String?
+  isPublished   Boolean   @default(true)
+  publishDate   DateTime  @default(now())
+  expiryDate    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([priority])
+  @@index([isPublished])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ALERT, EVENT
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model GalleryItem {
+  id          String    @id @default(uuid())
+  title       String
+  category    String    // Events, Workshops, Hackathons, Team, Campus
+  imageUrl    String
+  description String?
+  date        DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([category])
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    String   @default("NEW") // NEW, IN_PROGRESS, RESOLVED
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}
+
+model Sponsor {
+  id          String   @id @default(uuid())
+  name        String
+  logoUrl     String
+  websiteUrl  String?
+  tier        String   @default("PARTNER") // TITLE, GOLD, SILVER, ECOSYSTEM_PARTNER, INCUBATION
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Certificate {
+  id                String   @id @default(uuid())
+  certificateNumber String   @unique
+  eventId           String
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  recipientName     String
+  recipientEmail    String
+  issueDate         DateTime @default(now())
+  verificationUrl   String?
+  fileUrl           String?
+  createdAt         DateTime @default(now())
+
+  @@index([certificateNumber])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([entity])
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("ADMIN") // ADMIN, SUPER_ADMIN
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+model UserLoginActivity {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  ipAddress String?
+  userAgent String?
+  status    String   @default("SUCCESS") // SUCCESS, FAILED
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}

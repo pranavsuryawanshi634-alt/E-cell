@@ -11,7 +11,7 @@ services:
     name: ecell-sitrc-backend
     env: node
     rootDir: backend
-    buildCommand: npm install --include=dev && npm run build && npx prisma generate
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
     startCommand: npm run start
     healthCheckPath: /api/health
     plan: free # 100% Free tier (paired with free Neon PostgreSQL)

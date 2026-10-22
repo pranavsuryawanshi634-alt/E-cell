@@ -102,11 +102,11 @@ export async function listApplications(req: AuthRequest, res: Response) {
     }
     if (search) {
       where.OR = [
-        { fullName: { contains: search } },
-        { email: { contains: search } },
-        { department: { contains: search } },
-        { skills: { contains: search } },
-        { areasOfInterest: { contains: search } },
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { department: { contains: search, mode: 'insensitive' } },
+        { skills: { contains: search, mode: 'insensitive' } },
+        { areasOfInterest: { contains: search, mode: 'insensitive' } },
       ];
     }
 

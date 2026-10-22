@@ -8,6 +8,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
+    "prisma:generate:sqlite": "prisma generate --schema=prisma/schema.sqlite.prisma",
+    "prisma:generate:postgres": "prisma generate --schema=prisma/schema.prisma",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",

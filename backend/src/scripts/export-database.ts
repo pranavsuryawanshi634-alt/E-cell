@@ -10,6 +10,7 @@ async function exportDatabase() {
   const [
     users,
     profiles,
+    admins,
     startupIdeas,
     events,
     registrations,
@@ -18,10 +19,16 @@ async function exportDatabase() {
     teamMembers,
     membershipApps,
     notifications,
+    galleryItems,
+    contactMessages,
+    sponsors,
+    certificates,
     auditLogs,
+    loginActivities,
   ] = await Promise.all([
     prisma.user.findMany(),
     prisma.profile.findMany(),
+    prisma.admin.findMany(),
     prisma.startupIdea.findMany(),
     prisma.event.findMany(),
     prisma.eventRegistration.findMany(),
@@ -30,7 +37,12 @@ async function exportDatabase() {
     prisma.teamMember.findMany(),
     prisma.membershipApplication.findMany(),
     prisma.notification.findMany(),
+    prisma.galleryItem.findMany(),
+    prisma.contactMessage.findMany(),
+    prisma.sponsor.findMany(),
+    prisma.certificate.findMany(),
     prisma.auditLog.findMany(),
+    prisma.userLoginActivity.findMany(),
   ]);
 
   const exportData = {
@@ -41,6 +53,7 @@ async function exportDatabase() {
       totalRecords: {
         users: users.length,
         profiles: profiles.length,
+        admins: admins.length,
         startupIdeas: startupIdeas.length,
         events: events.length,
         registrations: registrations.length,
@@ -49,12 +62,18 @@ async function exportDatabase() {
         teamMembers: teamMembers.length,
         membershipApplications: membershipApps.length,
         notifications: notifications.length,
+        galleryItems: galleryItems.length,
+        contactMessages: contactMessages.length,
+        sponsors: sponsors.length,
+        certificates: certificates.length,
         auditLogs: auditLogs.length,
+        loginActivities: loginActivities.length,
       },
     },
     data: {
       users,
       profiles,
+      admins,
       startupIdeas,
       events,
       registrations,
@@ -63,7 +82,12 @@ async function exportDatabase() {
       teamMembers,
       membershipApplications: membershipApps,
       notifications,
+      galleryItems,
+      contactMessages,
+      sponsors,
+      certificates,
       auditLogs,
+      loginActivities,
     },
   };
 

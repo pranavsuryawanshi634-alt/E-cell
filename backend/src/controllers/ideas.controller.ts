@@ -172,10 +172,10 @@ export async function listIdeas(req: AuthRequest, res: Response) {
     }
     if (search) {
       where.OR = [
-        { title: { contains: search } },
-        { problem: { contains: search } },
-        { teamMembers: { contains: search } },
-        { targetUsers: { contains: search } },
+        { title: { contains: search, mode: 'insensitive' } },
+        { problem: { contains: search, mode: 'insensitive' } },
+        { teamMembers: { contains: search, mode: 'insensitive' } },
+        { targetUsers: { contains: search, mode: 'insensitive' } },
       ];
     }
 

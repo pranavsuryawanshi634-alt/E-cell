@@ -1,166 +1,142 @@
-# E-Cell SITRC Platform — Beginner-Friendly Deployment Guide
+# E-Cell SITRC Platform — 100% Free Production Deployment Guide
 
-This guide walks you step-by-step through deploying your **E-Cell SITRC** platform online with **zero data loss**, keeping all your existing admin accounts, student registrations, startup ideas, and events.
-
----
-
-## Architecture Overview & Selected Hosting Providers
-
-| Component | Selected Host | Why This Host? | Cost |
-| :--- | :--- | :--- | :--- |
-| **Frontend** (Vite + React) | **Vercel** | Free global CDN, automatic SSL certificates, native support for Vite & React Router SPAs, zero config. | Free |
-| **Backend** (Node.js + Express) | **Render** (or **Railway**) | Native Node.js support, automatic health checks, and supports **Persistent Disk Volumes** to keep your SQLite database safe across restarts. | Free / Low-cost |
-| **Database** (Prisma + SQLite) | **Mounted Persistent Disk** | Keeps your existing `dev.db` file 100% intact without requiring database schema rewrites or migration. | Included with host volume |
+This guide walks you step-by-step through deploying your **E-Cell SITRC** platform online with **zero hosting cost ($0/month forever)** and **zero data loss**, keeping all your existing admin accounts, student registrations, startup ideas, events, announcements, and blogs.
 
 ---
 
-## Pre-Deployment Checklist (Already Completed Locally ✅)
+## Architecture Overview & 100% Free Hosting Stack
 
-1. [x] **Frontend Dynamic API URL:** Updated `frontend/src/App.tsx` to read `import.meta.env.VITE_API_BASE_URL`.
-2. [x] **SPA Routing Fix:** Created `frontend/vercel.json` and `frontend/public/_redirects` to prevent 404s on browser reload.
-3. [x] **CORS Configuration:** Enhanced `backend/src/index.ts` to support production origins and Vercel domains.
-4. [x] **Database Safety:** Added `npm run db:export` which created a full JSON backup of all tables in `backend/prisma/db-export-latest.json`.
-5. [x] **Git Security:** Updated `.gitignore` across root, backend, and frontend to protect all `.env` files and `.backup` database files from being committed to GitHub.
-6. [x] **Production Builds:** Both `frontend` and `backend` build successfully with 0 errors.
+| Component | Selected Host | Plan | Cost | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Frontend** | **Vercel** | Hobby (Free) | **$0.00** | Free global CDN, automatic SSL certificates, native Vite/React SPA routing. |
+| **Backend** | **Render** | Free Web Service | **$0.00** | Stateless Node.js + Express API container with auto-deploy on git push. |
+| **Database** | **Neon** | Free Tier | **$0.00** | Serverless Cloud PostgreSQL (0.5 GB storage, auto-scaling, SSL required). |
 
 ---
 
-## Step 1: Push Code to GitHub
+## Pre-Deployment Preparation Checklist (Completed Locally ✅)
+
+1. [x] **SQLite Preserved:** `backend/prisma/dev.db` is backed up safely (`dev.db.pre-neon-migration.backup`).
+2. [x] **Full 17-Model Export:** Generated verified JSON snapshot via `npm run db:export` in `backend/prisma/db-export-latest.json`.
+3. [x] **PostgreSQL Schema:** Configured `backend/prisma/schema.prisma` with `provider = "postgresql"` and `directUrl`.
+4. [x] **Case-Insensitive Search:** Added `mode: 'insensitive'` to all `contains` search filters across events, ideas, blog, and registrations.
+5. [x] **Migration Script:** Created `npm run db:migrate:neon` (`migrate-to-neon.ts`) with idempotent upserts, foreign-key ordering, and 100% data parity verification.
+6. [x] **Render Free Blueprint:** Updated `render.yaml` to `plan: free` with zero disk fees.
+7. [x] **SPA Routing:** Configured `frontend/vercel.json` and `frontend/public/_redirects`.
+
+---
+
+## Step 1: Create Your Free Neon PostgreSQL Database
+
+1. Sign up or log in at **[Neon.tech](https://neon.tech)** (free, no credit card required).
+2. Create a new project (e.g. `ecell-sitrc`).
+3. Neon will present your **Connection Details**:
+   - **Pooled connection string** (ends with `-pooler.neon.tech`): Use this as `DATABASE_URL`.
+   - **Direct connection string** (ends with `.neon.tech`): Use this as `DIRECT_URL`.
+   - Make sure `?sslmode=require` is present at the end of both strings.
+
+---
+
+## Step 2: Push Code to GitHub
 
 Open PowerShell in `C:\Users\HP\Desktop\ecell`:
 
 ```powershell
-# 1. Review status to confirm no passwords, backups, or .env files are staged
+# 1. Verify git status
 git status
 
-# 2. Add all verified project files
+# 2. Stage reviewed changes
 git add .
 
-# 3. Commit the deployment preparation
-git commit -m "chore: prepare frontend and backend for production deployment"
+# 3. Commit
+git commit -m "chore: configure PostgreSQL support for Neon free tier"
 
-# 4. Push to your GitHub repository
+# 4. Push to main branch
 git push origin main
 ```
 
 ---
 
-## Step 2: Deploy Backend to Render
+## Step 3: Initialize Schema & Migrate Data to Neon
 
-1. Log in to **[Render.com](https://render.com)** (sign in with your GitHub account).
-2. Click **New +** and select **Web Service**.
-3. Connect your **E-cell** GitHub repository.
-4. Configure the Web Service settings:
+Once you have your Neon connection strings, perform the initial data transfer from your local machine:
+
+1. In `backend/.env`, temporarily configure your Neon database URLs:
+   ```env
+   DATABASE_URL="postgresql://user:password@ep-your-project-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
+   DIRECT_URL="postgresql://user:password@ep-your-project.us-east-2.aws.neon.tech/neondb?sslmode=require"
+   ```
+2. In PowerShell inside `backend`:
+   ```powershell
+   # 1. Push schema tables and indexes to Neon
+   npx prisma db push
+
+   # 2. Run the automated data migration script
+   npm run db:migrate:neon
+   ```
+3. The script will import all 17 models, preserve every user account and password hash, and display the **100% Data Parity Verification Table**.
+
+---
+
+## Step 4: Deploy Backend to Render (Free Tier)
+
+1. Log in to **[Render.com](https://render.com)**.
+2. Click **New +** -> **Web Service**.
+3. Connect your **E-cell** GitHub repository (`main` branch).
+4. Configure Web Service settings:
    - **Name:** `ecell-sitrc-backend`
    - **Root Directory:** `backend`
    - **Environment:** `Node`
-   - **Build Command:** `npm install && npm run build && npx prisma generate`
+   - **Region:** Choose the region closest to your Neon database (e.g., Ohio / Frankfurt / Singapore)
+   - **Instance Type:** **Free** ($0/month)
+   - **Build Command:** `npm install --include=dev && npx prisma generate && npm run build`
    - **Start Command:** `npm run start`
    - **Health Check Path:** `/api/health`
-5. **Attach a Persistent Disk (CRITICAL for SQLite data preservation):**
-   - Scroll down to **Disks** and click **Add Disk**.
-   - **Name:** `ecell-data`
-   - **Mount Path:** `/data`
-   - **Size:** `1 GB` (plenty for SQLite & uploads)
-6. Configure **Environment Variables** in Render:
+5. Configure **Environment Variables** in Render:
    - `NODE_ENV` = `production`
-   - `DATABASE_URL` = `file:/data/dev.db`
-   - `JWT_SECRET` = *(Click "Generate" or type a strong random string)*
+   - `DATABASE_URL` = *(Paste your Neon Pooled Connection String)*
+   - `DIRECT_URL` = *(Paste your Neon Direct Connection String)*
+   - `JWT_SECRET` = *(Click "Generate" or enter a secure 64-char random string)*
    - `JWT_EXPIRES_IN` = `7d`
-   - `UPLOAD_DIR` = `/data/uploads`
-   - `FRONTEND_URL` = *(We will paste your Vercel URL here in Step 4)*
-7. Click **Create Web Service**.
+   - `FRONTEND_URL` = *(We will paste your Vercel URL here in Step 6)*
+   - `UPLOAD_DIR` = `uploads`
+6. Click **Create Web Service**.
+7. Once deployed, Render will provide your live backend URL:
+   `https://ecell-sitrc-backend.onrender.com`
 
 ---
 
-## Step 3: Production SQLite Database & Data Preservation
+## Step 5: Deploy Frontend to Vercel (Free Tier)
 
-When your backend first deploys with a persistent disk, `/data` is an empty volume. Running `npx prisma db push` will create the SQLite tables, but it **does not** automatically transfer your existing records.
-
-Choose one of the two options below depending on your goal:
-
-### Option A: Transfer & Preserve All Existing Local Records (Recommended)
-This preserves all your existing 9 admin accounts, student accounts, events, announcements, and startup idea submissions.
-
-1. **Encode your local database:**
-   In local PowerShell on your machine:
-   ```powershell
-   [Convert]::ToBase64String([IO.File]::ReadAllBytes("backend\prisma\dev.db")) | Set-Content dev.db.b64
-   ```
-2. **Transfer to Render:**
-   - In Render, navigate to your `ecell-sitrc-backend` dashboard and click the **Shell** tab (opens a live SSH terminal).
-   - Ensure the `/data` directory exists:
-     ```bash
-     mkdir -p /data
-     ```
-   - Decode your database onto the persistent disk:
-     ```bash
-     cat << 'EOF' | base64 -d > /data/dev.db
-     <PASTE_CONTENTS_OF_dev.db.b64_HERE>
-     EOF
-     ```
-   - Verify the database file is present:
-     ```bash
-     ls -lh /data/dev.db
-     ```
-   - Ensure Prisma schema is in sync (non-destructive):
-     ```bash
-     npx prisma db push
-     ```
-
-### Option B: Fresh Production Database with Safe Admin Provisioning
-If you prefer starting with a fresh production database:
-
-1. In Render **Shell**:
-   ```bash
-   mkdir -p /data
-   npx prisma db push
-   ```
-2. Provision the 9 authorized administrators:
-   ```bash
-   npm run admin:setup
-   ```
-   > **Note on Password Safety:** `npm run admin:setup` runs in default safe mode. If an administrator account already exists, its password is **strictly preserved** and will not be overwritten. To intentionally reset existing administrator passwords, pass `--reset-passwords`.
-
-3. Your live backend service URL will be displayed in your Render dashboard (e.g., `https://ecell-sitrc-backend.onrender.com`). Verify it by visiting `https://ecell-sitrc-backend.onrender.com/api/health`.
-
----
-
-## Step 4: Deploy Frontend to Vercel
-
-1. Log in to **[Vercel.com](https://vercel.com)** (sign in with GitHub).
+1. Log in to **[Vercel.com](https://vercel.com)**.
 2. Click **Add New...** -> **Project**.
 3. Import your **E-cell** repository.
 4. Configure Project settings:
    - **Framework Preset:** `Vite`
-   - **Root Directory:** Click **Edit** and choose `frontend`.
-   - **Build Command:** `npm run build` (default)
-   - **Output Directory:** `dist` (default)
+   - **Root Directory:** Click **Edit** and select `frontend`.
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
 5. Add the **Environment Variable**:
    - **Name:** `VITE_API_BASE_URL`
-   - **Value:** `https://ecell-sitrc-backend.onrender.com/api` *(replace with your actual Render backend URL)*
+   - **Value:** `https://ecell-sitrc-backend.onrender.com/api` *(replace with your actual Render URL)*
 6. Click **Deploy**.
-7. Vercel will build and assign you a production URL, e.g. `https://ecell-sitrc.vercel.app`.
+7. Vercel will build and assign your live URL: `https://ecell-sitrc.vercel.app`.
 
 ---
 
-## Step 5: Final Linkage
+## Step 6: Final Linkage (CORS)
 
-1. Copy your new Vercel URL (e.g. `https://ecell-sitrc.vercel.app`).
+1. Copy your live Vercel URL (e.g. `https://ecell-sitrc.vercel.app`).
 2. Go back to **Render** -> `ecell-sitrc-backend` -> **Environment Variables**.
-3. Set `FRONTEND_URL` = `https://ecell-sitrc.vercel.app`.
-4. Render will automatically redeploy with CORS linked to your Vercel frontend.
+3. Update `FRONTEND_URL` to `https://ecell-sitrc.vercel.app`.
+4. Render will automatically redeploy with CORS active for your Vercel domain.
 
 ---
 
-## How to Test Your Live Website
+## Verification & Testing Checklist
 
-1. Open your live Vercel URL in your browser.
-2. Verify all sections: Overview, Events, Gallery, Notice Board, Team, and Leadership.
-3. Test **Admin Login**:
-   - Go to `https://your-site.vercel.app/admin/login`.
-   - Log in with any of your 9 authorized admin emails.
-4. Test **Incubation Idea Submission**:
-   - Log in as a student and submit an idea.
-   - Verify it appears in your submissions tracker.
-5. Check footer telephone and social media links.
+- [ ] Visit `https://your-site.vercel.app` (verify all pages, gallery, notice board, and events load).
+- [ ] Visit `https://your-site.vercel.app/admin/login` and log in with any of your 9 authorized admin emails.
+- [ ] Test student registration and login.
+- [ ] Test Incubation Idea submission.
+- [ ] Check footer contact telephone links and social media channels.
