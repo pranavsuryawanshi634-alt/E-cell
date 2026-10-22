@@ -20,7 +20,7 @@ router.post('/reset-password', resetPassword);
 router.get('/me', authenticate, getMe);
 router.put('/profile', authenticate, updateProfile);
 router.put('/change-password', authenticate, changePassword);
-router.post('/logout', authenticate, (req, res) => {
+router.post('/logout', (req, res) => {
   res.json({ success: true, message: 'Logged out successfully' });
 });
 

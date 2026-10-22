@@ -8,4 +8,10 @@ coverage/
 *.db
 *.db-journal
 *.sqlite
+*.backup
+*.db.backup
+dev.db.backup
+dev.db.pre-admin-schema.backup
+prisma/db-export*.json
+*.export.json
 uploads/

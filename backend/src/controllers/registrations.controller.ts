@@ -160,6 +160,60 @@ export async function getEventRegistrations(req: AuthRequest, res: Response) {
   }
 }
 
+export async function getAllRegistrations(req: AuthRequest, res: Response) {
+  try {
+    const { status, search, eventId } = req.query as Record<string, string>;
+
+    const where: any = {};
+
+    if (eventId && eventId !== 'ALL') {
+      where.eventId = eventId;
+    }
+
+    if (status && status !== 'ALL') {
+      where.status = status.toUpperCase();
+    }
+
+    if (search) {
+      where.OR = [
+        { ticketCode: { contains: search } },
+        { user: { profile: { fullName: { contains: search } } } },
+        { user: { email: { contains: search } } },
+        { event: { title: { contains: search } } },
+      ];
+    }
+
+    const registrations = await prisma.eventRegistration.findMany({
+      where,
+      include: {
+        event: {
+          select: {
+            id: true,
+            title: true,
+            date: true,
+            venue: true,
+            eventType: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            profile: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return sendSuccess(res, 'All registrations retrieved', registrations);
+  } catch (error: any) {
+    return sendError(res, error.message || 'Failed to fetch registrations', null, 500);
+  }
+}
+
+
 export async function getMyRegistrations(req: AuthRequest, res: Response) {
   try {
     if (!req.user) {

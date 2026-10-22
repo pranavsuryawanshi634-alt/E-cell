@@ -11,7 +11,14 @@
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:export": "tsx src/scripts/export-database.ts",
+    "create-admin": "tsx src/scripts/create-admin.ts",
+    "admin:setup": "tsx src/scripts/setup-admins.ts",
+    "admin:create": "tsx src/scripts/admin-manager.ts create",
+    "admin:password": "tsx src/scripts/admin-manager.ts password",
+    "admin:remove": "tsx src/scripts/admin-manager.ts remove",
+    "admin:list": "tsx src/scripts/admin-manager.ts list"
   },
   "keywords": ["ecell", "entrepreneurship", "api", "express", "prisma"],
   "author": "E-Cell Team",

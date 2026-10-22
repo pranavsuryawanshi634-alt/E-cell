@@ -1,0 +1,34 @@
+# =====================================================================
+# Render Deployment Blueprint for E-Cell SITRC Platform
+# =====================================================================
+# This file automates deployment of the backend with a persistent disk
+# ensuring your SQLite database (dev.db) is never erased during redeploys.
+# =====================================================================
+
+services:
+  # 1. Backend Web Service
+  - type: web
+    name: ecell-sitrc-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build && npx prisma generate
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    plan: starter # Persistent disks require Starter plan or above on Render
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/data/dev.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        sync: false # Enter your live Vercel/Netlify frontend URL (e.g. https://ecell-sitrc.vercel.app)
+      - key: UPLOAD_DIR
+        value: /data/uploads
+    disk:
+      name: ecell-data
+      mountPath: /data
+      sizeGB: 1

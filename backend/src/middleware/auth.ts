@@ -30,10 +30,47 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as {
+      userId?: string;
+      id?: string;
+      adminId?: string;
+      email?: string;
+      role?: string;
+    };
 
+    const targetId = decoded.userId || decoded.adminId || decoded.id;
+
+    if (!targetId) {
+      return sendError(res, 'Invalid token payload.', null, 401);
+    }
+
+    // 1. Try finding in Admin table
+    const admin = await prisma.admin.findUnique({
+      where: { id: targetId },
+    });
+
+    if (admin) {
+      if (!admin.isActive) {
+        return sendError(res, 'Administrator account has been deactivated.', null, 403);
+      }
+      req.user = {
+        id: admin.id,
+        email: admin.email,
+        role: admin.role,
+        profile: {
+          fullName: admin.name,
+          department: 'E-Cell Administrative Control Center',
+          college: 'Sandip Institute of Technology and Research Centre',
+          year: null,
+          avatarUrl: null,
+        },
+      };
+      return next();
+    }
+
+    // 2. Fallback to User table
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: targetId },
       include: {
         profile: {
           select: {
@@ -49,6 +86,10 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
 
     if (!user) {
       return sendError(res, 'Invalid token. User not found.', null, 401);
+    }
+
+    if (user.status && user.status !== 'ACTIVE') {
+      return sendError(res, 'User account is inactive or suspended.', null, 403);
     }
 
     req.user = {
@@ -75,32 +116,60 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    prisma.user
-      .findUnique({
-        where: { id: decoded.userId },
-        include: {
-          profile: {
-            select: {
-              fullName: true,
-              department: true,
-              year: true,
-              college: true,
-              avatarUrl: true,
-            },
-          },
-        },
-      })
-      .then((user) => {
-        if (user) {
+    const decoded = jwt.verify(token, JWT_SECRET) as {
+      userId?: string;
+      id?: string;
+      adminId?: string;
+    };
+    const targetId = decoded.userId || decoded.adminId || decoded.id;
+    if (!targetId) return next();
+
+    prisma.admin
+      .findUnique({ where: { id: targetId } })
+      .then((admin) => {
+        if (admin && admin.isActive) {
           req.user = {
-            id: user.id,
-            email: user.email,
-            role: user.role,
-            profile: user.profile,
+            id: admin.id,
+            email: admin.email,
+            role: admin.role,
+            profile: {
+              fullName: admin.name,
+              department: 'E-Cell Administrative Control Center',
+              college: 'Sandip Institute of Technology and Research Centre',
+              year: null,
+              avatarUrl: null,
+            },
           };
+          return next();
         }
-        next();
+
+        return prisma.user
+          .findUnique({
+            where: { id: targetId },
+            include: {
+              profile: {
+                select: {
+                  fullName: true,
+                  department: true,
+                  year: true,
+                  college: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          })
+          .then((user) => {
+            if (user) {
+              req.user = {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                profile: user.profile,
+              };
+            }
+            next();
+          })
+          .catch(() => next());
       })
       .catch(() => next());
   } catch {

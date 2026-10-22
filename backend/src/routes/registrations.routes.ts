@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   registerForEvent,
   getEventRegistrations,
+  getAllRegistrations,
   getMyRegistrations,
   updateRegistrationStatus,
   cancelMyRegistration,
@@ -10,6 +11,14 @@ import {
 import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
+
+// Staff / Admin list all registrations
+router.get(
+  '/',
+  authenticate,
+  authorize('ADMIN', 'COORDINATOR', 'E_CELL_MEMBER'),
+  getAllRegistrations
+);
 
 // Student routes
 router.post('/', authenticate, registerForEvent);

@@ -6,22 +6,49 @@ import { AuthRequest } from '../middleware/auth';
 import { logAudit, sendNotification } from '../utils/audit';
 
 const ideaSchema = z.object({
-  title: z.string().min(3, 'Idea title is required'),
-  problem: z.string().min(15, 'Please describe the problem in detail (min 15 chars)'),
-  proposedSolution: z.string().min(15, 'Please describe your proposed solution (min 15 chars)'),
-  targetUsers: z.string().min(3, 'Specify target users or customer segment'),
-  market: z.string().min(3, 'Market opportunity details required'),
-  businessModel: z.string().min(3, 'Revenue or business model required'),
-  currentStage: z.enum([
-    'Ideation',
-    'Proof of Concept',
-    'Prototype / MVP',
-    'Early Traction',
-    'Scaling',
-  ]),
-  teamMembers: z.string().min(2, 'Team members details required'),
-  expectedImpact: z.string().min(10, 'Expected impact required'),
-  documentUrl: z.string().optional().nullable(),
+  title: z
+    .string({ required_error: 'Startup / Project title is required' })
+    .trim()
+    .min(3, 'Title must be at least 3 characters'),
+  category: z.string().trim().optional().default('AI & DeepTech'),
+  problem: z
+    .string({ required_error: 'Problem statement is required' })
+    .trim()
+    .min(10, 'Please describe the problem in detail (at least 10 characters)'),
+  proposedSolution: z
+    .string({ required_error: 'Proposed solution is required' })
+    .trim()
+    .min(10, 'Please describe your proposed solution (at least 10 characters)'),
+  targetUsers: z
+    .string({ required_error: 'Target users / audience is required' })
+    .trim()
+    .min(2, 'Please specify your target users or customer segment'),
+  market: z
+    .string({ required_error: 'Market opportunity / competitors is required' })
+    .trim()
+    .min(2, 'Please describe the market opportunity or competitors'),
+  businessModel: z
+    .string({ required_error: 'Revenue / Business model is required' })
+    .trim()
+    .min(2, 'Please specify your revenue or monetization model'),
+  currentStage: z
+    .enum([
+      'Ideation',
+      'Proof of Concept',
+      'Prototype / MVP',
+      'Early Traction',
+      'Scaling',
+    ])
+    .default('Ideation'),
+  teamMembers: z
+    .string({ required_error: 'Team members information is required' })
+    .trim()
+    .min(2, 'Please specify team members or indicate Solo Founder'),
+  expectedImpact: z
+    .string({ required_error: 'Expected impact / outcome is required' })
+    .trim()
+    .min(5, 'Please describe the expected impact or key milestones'),
+  documentUrl: z.string().trim().optional().nullable(),
 });
 
 export async function submitIdea(req: AuthRequest, res: Response) {
@@ -30,22 +57,57 @@ export async function submitIdea(req: AuthRequest, res: Response) {
       return sendError(res, 'Authentication required to submit a startup idea', null, 401);
     }
 
-    const validated = ideaSchema.parse(req.body);
+    // Support flexible property names from frontend
+    const rawData = {
+      title: req.body.title,
+      category: req.body.category || 'AI & DeepTech',
+      problem: req.body.problem || req.body.problemStatement,
+      proposedSolution: req.body.proposedSolution || req.body.solution,
+      targetUsers: req.body.targetUsers || req.body.targetAudience,
+      market: req.body.market || req.body.marketOpportunity,
+      businessModel: req.body.businessModel || req.body.revenueModel,
+      currentStage: req.body.currentStage || 'Ideation',
+      teamMembers: req.body.teamMembers || req.body.team,
+      expectedImpact: req.body.expectedImpact || req.body.impact,
+      documentUrl: req.body.documentUrl || req.body.pitchDeckUrl || null,
+    };
+
+    const validated = ideaSchema.parse(rawData);
 
     const idea = await prisma.startupIdea.create({
       data: {
-        ...validated,
         userId: req.user.id,
+        title: validated.title,
+        category: validated.category,
+        problem: validated.problem,
+        proposedSolution: validated.proposedSolution,
+        targetUsers: validated.targetUsers,
+        market: validated.market,
+        businessModel: validated.businessModel,
+        currentStage: validated.currentStage,
+        teamMembers: validated.teamMembers,
+        expectedImpact: validated.expectedImpact,
+        documentUrl: validated.documentUrl || null,
         status: 'SUBMITTED',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            profile: true,
+          },
+        },
       },
     });
 
     await sendNotification({
       userId: req.user.id,
       title: 'Startup Idea Submitted 💡',
-      message: `"${idea.title}" has been registered with the SIEM Incubation Cell.`,
+      message: `"${idea.title}" has been registered with the SITRC Incubation Cell.`,
       type: 'INFO',
-      link: '/dashboard/ideas',
+      link: '/ideas',
     });
 
     await logAudit({
@@ -57,10 +119,16 @@ export async function submitIdea(req: AuthRequest, res: Response) {
       ipAddress: req.ip,
     });
 
-    return sendSuccess(res, 'Startup idea submitted successfully!', idea, 201);
+    return sendSuccess(res, 'Startup idea submitted successfully to E-Cell Review Committee!', idea, 201);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return sendError(res, error.errors[0]?.message || 'Validation error', error.errors, 422);
+      const fieldErrors: Record<string, string> = {};
+      error.errors.forEach((err) => {
+        const field = err.path.join('.');
+        fieldErrors[field] = err.message;
+      });
+      const firstMessage = error.errors[0]?.message || 'Please complete all required fields';
+      return sendError(res, firstMessage, fieldErrors, 422);
     }
     return sendError(res, error.message || 'Failed to submit idea', null, 500);
   }
@@ -73,6 +141,16 @@ export async function getMyIdeas(req: AuthRequest, res: Response) {
     const ideas = await prisma.startupIdea.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            profile: true,
+          },
+        },
+      },
     });
 
     return sendSuccess(res, 'My startup ideas retrieved', ideas);

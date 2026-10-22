@@ -16,9 +16,14 @@ coverage/
 *.db-journal
 *.sqlite
 *.sqlite3
+*.backup
+*.db.backup
+*db-export*.json
+*.export.json
 
-# Uploads
+# Uploads and temporary media
 uploads/
+WhatsApp Image*.jpeg
 
 # Logs
 *.log
